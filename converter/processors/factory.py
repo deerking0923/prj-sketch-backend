@@ -9,7 +9,8 @@ from .painting import (
     CartoonProcessor,
     OilPaintingProcessor,
     WatercolorProcessor,
-    MosaicProcessor
+    MosaicProcessor,
+    CelShadingProcessor
 )
 from .artistic import (
     OutlineProcessor,
@@ -29,6 +30,7 @@ class ProcessorFactory:
         'oil_painting': OilPaintingProcessor,
         'watercolor': WatercolorProcessor,
         'mosaic': MosaicProcessor,
+        'cel_shading': CelShadingProcessor,
         'outline': OutlineProcessor,
         'pointillism': PointillismProcessor,
         'vintage': VintageProcessor,
@@ -36,13 +38,7 @@ class ProcessorFactory:
     
     @classmethod
     def get_processor(cls, style: str):
-        """
-        스타일 이름으로 프로세서 인스턴스 반환
-        Args:
-            style: 변환 스타일 이름
-        Returns:
-            BaseImageProcessor 인스턴스
-        """
+        """스타일 이름으로 프로세서 인스턴스 반환"""
         processor_class = cls.PROCESSORS.get(style)
         if processor_class is None:
             raise ValueError(f"Unknown style: {style}. Available: {list(cls.PROCESSORS.keys())}")
@@ -50,5 +46,22 @@ class ProcessorFactory:
     
     @classmethod
     def available_styles(cls):
-        """사용 가능한 모든 스타일 목록 반환"""
-        return list(cls.PROCESSORS.keys())
+        """사용 가능한 모든 스타일 목록과 파라미터 정보 반환"""
+        styles = {}
+        for style_name, processor_class in cls.PROCESSORS.items():
+            styles[style_name] = {
+                'name': style_name,
+                'parameters': processor_class.get_parameters()
+            }
+        return styles
+    
+    @classmethod
+    def get_style_info(cls, style: str):
+        """특정 스타일의 파라미터 정보 반환"""
+        processor_class = cls.PROCESSORS.get(style)
+        if processor_class is None:
+            raise ValueError(f"Unknown style: {style}")
+        return {
+            'name': style,
+            'parameters': processor_class.get_parameters()
+        }

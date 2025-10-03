@@ -9,6 +9,7 @@ import numpy as np
 import io
 import cv2
 import base64
+import json
 
 from .processors import ProcessorFactory
 
@@ -23,6 +24,13 @@ class ImageViewSet(viewsets.ViewSet):
         # 변환 스타일 선택 (기본값: pencil_sketch)
         style = request.data.get('style', 'pencil_sketch')
         
+        # 파라미터 가져오기 (JSON 문자열로 받음)
+        params_str = request.data.get('params', '{}')
+        try:
+            params = json.loads(params_str) if isinstance(params_str, str) else params_str
+        except json.JSONDecodeError:
+            params = {}
+        
         uploaded_file = request.data['image']
 
         try:
@@ -32,9 +40,9 @@ class ImageViewSet(viewsets.ViewSet):
             numpy_image = np.array(image.convert('RGB')) 
             cv_image = cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR)
             
-            # 2. 선택된 스타일로 변환
+            # 2. 선택된 스타일로 변환 (파라미터 포함)
             processor = ProcessorFactory.get_processor(style)
-            converted_image = processor.process(cv_image)
+            converted_image = processor.process(cv_image, **params)
             
             # 3. 변환된 이미지를 Base64 문자열로 인코딩
             _, buffer = cv2.imencode('.png', converted_image) 
@@ -45,6 +53,7 @@ class ImageViewSet(viewsets.ViewSet):
                 'message': '이미지 변환 성공',
                 'file_name': uploaded_file.name,
                 'style': style,
+                'params': params,
                 'sketch_image_base64': base64_encoded_image
             }, status=status.HTTP_200_OK)
 
@@ -57,7 +66,17 @@ class ImageViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def styles(self, request):
-        """사용 가능한 변환 스타일 목록 반환"""
+        """사용 가능한 변환 스타일 목록과 파라미터 정보 반환"""
         return Response({
             'styles': ProcessorFactory.available_styles()
         })
+    
+    @action(detail=False, methods=['get'], url_path='styles/(?P<style_name>[^/.]+)')
+    def style_info(self, request, style_name=None):
+        """특정 스타일의 파라미터 정보 반환"""
+        try:
+            info = ProcessorFactory.get_style_info(style_name)
+            return Response(info)
+        except ValueError as e:
+            return Response({'error': str(e)}, 
+                            status=status.HTTP_404_NOT_FOUND)

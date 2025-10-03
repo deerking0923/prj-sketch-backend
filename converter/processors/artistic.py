@@ -6,9 +6,32 @@ from .base import BaseImageProcessor
 class OutlineProcessor(BaseImageProcessor):
     """아웃라인만 추출"""
     
-    def process(self, image: np.ndarray) -> np.ndarray:
+    @classmethod
+    def get_parameters(cls):
+        return [
+            {
+                'name': 'threshold1',
+                'type': 'int',
+                'default': 50,
+                'min': 10,
+                'max': 150,
+                'step': 10,
+                'description': '낮은 임계값'
+            },
+            {
+                'name': 'threshold2',
+                'type': 'int',
+                'default': 150,
+                'min': 50,
+                'max': 300,
+                'step': 10,
+                'description': '높은 임계값'
+            }
+        ]
+    
+    def process(self, image: np.ndarray, threshold1=50, threshold2=150) -> np.ndarray:
         gray = self.to_gray(image)
-        edges = cv2.Canny(gray, 50, 150)
+        edges = cv2.Canny(gray, threshold1, threshold2)
         
         # 흰 배경에 검은 선
         white_bg = np.ones_like(image) * 255
@@ -20,14 +43,37 @@ class OutlineProcessor(BaseImageProcessor):
 class PointillismProcessor(BaseImageProcessor):
     """점묘화 효과"""
     
-    def process(self, image: np.ndarray) -> np.ndarray:
+    @classmethod
+    def get_parameters(cls):
+        return [
+            {
+                'name': 'point_density',
+                'type': 'int',
+                'default': 50,
+                'min': 20,
+                'max': 200,
+                'step': 10,
+                'description': '점 밀집도 (클수록 많은 점)'
+            },
+            {
+                'name': 'point_size',
+                'type': 'int',
+                'default': 2,
+                'min': 1,
+                'max': 5,
+                'step': 1,
+                'description': '점 크기'
+            }
+        ]
+    
+    def process(self, image: np.ndarray, point_density=50, point_size=2) -> np.ndarray:
         h, w = image.shape[:2]
         
         # 흰 캔버스
         canvas = np.ones((h, w, 3), dtype=np.uint8) * 255
         
-        # 랜덤하게 점 찍기
-        num_points = (h * w) // 50  # 점의 개수 조절
+        # 점의 개수 계산
+        num_points = (h * w) // point_density
         
         for _ in range(num_points):
             x = np.random.randint(0, w)
@@ -37,7 +83,7 @@ class PointillismProcessor(BaseImageProcessor):
             color = tuple(map(int, image[y, x]))
             
             # 점 그리기
-            cv2.circle(canvas, (x, y), 2, color, -1)
+            cv2.circle(canvas, (x, y), point_size, color, -1)
         
         return canvas
 
@@ -45,11 +91,25 @@ class PointillismProcessor(BaseImageProcessor):
 class VintageProcessor(BaseImageProcessor):
     """빈티지/세피아 효과"""
     
-    def process(self, image: np.ndarray) -> np.ndarray:
+    @classmethod
+    def get_parameters(cls):
+        return [
+            {
+                'name': 'intensity',
+                'type': 'float',
+                'default': 1.0,
+                'min': 0.5,
+                'max': 1.5,
+                'step': 0.1,
+                'description': '세피아 강도'
+            }
+        ]
+    
+    def process(self, image: np.ndarray, intensity=1.0) -> np.ndarray:
         # 세피아 변환 매트릭스
         kernel = np.array([[0.272, 0.534, 0.131],
                           [0.349, 0.686, 0.168],
-                          [0.393, 0.769, 0.189]])
+                          [0.393, 0.769, 0.189]]) * intensity
         
         sepia = cv2.transform(image, kernel)
         sepia = np.clip(sepia, 0, 255).astype(np.uint8)

@@ -16,7 +16,7 @@ class CartoonProcessor(BaseImageProcessor):
                 'min': 3,
                 'max': 20,
                 'step': 1,
-                'description': '색상 단순화 레벨 (작을수록 단순)'
+                'description': '색상 단순화 레벨'
             },
             {
                 'name': 'edge_thickness',
@@ -25,11 +25,20 @@ class CartoonProcessor(BaseImageProcessor):
                 'min': 3,
                 'max': 15,
                 'step': 2,
-                'description': '윤곽선 두께'
+                'description': '윤곽선 감지 범위'
+            },
+            {
+                'name': 'line_thickness',
+                'type': 'int',
+                'default': 1,
+                'min': 1,
+                'max': 5,
+                'step': 1,
+                'description': '선 굵기'
             }
         ]
     
-    def process(self, image: np.ndarray, color_levels=9, edge_thickness=9) -> np.ndarray:
+    def process(self, image: np.ndarray, color_levels=9, edge_thickness=9, line_thickness=1) -> np.ndarray:
         # 색상 단순화
         color = cv2.bilateralFilter(image, color_levels, 250, 250)
         
@@ -41,6 +50,11 @@ class CartoonProcessor(BaseImageProcessor):
             cv2.THRESH_BINARY,
             edge_thickness, 2
         )
+        
+        # 선 굵기 조정
+        if line_thickness > 1:
+            kernel = np.ones((line_thickness, line_thickness), np.uint8)
+            edges = cv2.dilate(edges, kernel, iterations=1)
         
         # 엣지를 컬러 이미지와 합성
         edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
@@ -62,7 +76,7 @@ class OilPaintingProcessor(BaseImageProcessor):
                 'min': 1,
                 'max': 5,
                 'step': 1,
-                'description': '블러 반복 횟수 (클수록 부드러움)'
+                'description': '블러 반복 횟수'
             },
             {
                 'name': 'blur_size',
@@ -80,7 +94,6 @@ class OilPaintingProcessor(BaseImageProcessor):
         for _ in range(blur_iterations):
             result = cv2.medianBlur(result, blur_size)
         
-        # 디테일 강화
         result = cv2.bilateralFilter(result, 9, 75, 75)
         return result
 
@@ -129,14 +142,13 @@ class MosaicProcessor(BaseImageProcessor):
                 'min': 5,
                 'max': 50,
                 'step': 5,
-                'description': '타일 크기 (클수록 큰 블록)'
+                'description': '타일 크기'
             }
         ]
     
     def process(self, image: np.ndarray, tile_size=10) -> np.ndarray:
         h, w = image.shape[:2]
         
-        # 작은 크기로 축소 후 다시 확대
         small = cv2.resize(
             image,
             (w // tile_size, h // tile_size),
@@ -165,17 +177,26 @@ class CelShadingProcessor(BaseImageProcessor):
                 'min': 3,
                 'max': 20,
                 'step': 1,
-                'description': '색상 레벨 (3-4=강함, 5-7=표준, 8+=부드러움)'
+                'description': '색상 레벨'
             },
             {
                 'name': 'with_edges',
                 'type': 'bool',
                 'default': True,
                 'description': '윤곽선 추가'
+            },
+            {
+                'name': 'line_thickness',
+                'type': 'int',
+                'default': 1,
+                'min': 1,
+                'max': 5,
+                'step': 1,
+                'description': '선 굵기'
             }
         ]
     
-    def process(self, image: np.ndarray, levels=8, with_edges=True) -> np.ndarray:
+    def process(self, image: np.ndarray, levels=8, with_edges=True, line_thickness=1) -> np.ndarray:
         # HSV로 변환
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         
@@ -209,6 +230,11 @@ class CelShadingProcessor(BaseImageProcessor):
                 cv2.THRESH_BINARY,
                 9, 5
             )
+            
+            # 선 굵기 조정
+            if line_thickness > 1:
+                kernel = np.ones((line_thickness, line_thickness), np.uint8)
+                edges = cv2.dilate(edges, kernel, iterations=1)
             
             # 검은 윤곽선 적용
             result[edges < 128] = [0, 0, 0]

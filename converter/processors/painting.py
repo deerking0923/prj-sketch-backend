@@ -62,39 +62,93 @@ class CartoonProcessor(BaseImageProcessor):
         
         return cartoon
 
+# converter/processors/painting.py (OilPaintingProcessor만 수정)
+import cv2
+import numpy as np
+from .base import BaseImageProcessor
 
 class OilPaintingProcessor(BaseImageProcessor):
-    """유화 효과"""
+    """유화 효과 - 명암에 따른 붓터치"""
     
     @classmethod
     def get_parameters(cls):
         return [
             {
-                'name': 'blur_iterations',
-                'type': 'int',
-                'default': 2,
-                'min': 1,
-                'max': 5,
-                'step': 1,
-                'description': '블러 반복 횟수'
-            },
-            {
-                'name': 'blur_size',
+                'name': 'brush_size',
                 'type': 'int',
                 'default': 7,
                 'min': 3,
                 'max': 15,
                 'step': 2,
-                'description': '블러 크기'
+                'description': '붓 크기'
+            },
+            {
+                'name': 'brush_intensity',
+                'type': 'int',
+                'default': 5,
+                'min': 1,
+                'max': 10,
+                'step': 1,
+                'description': '붓터치 강도'
             }
         ]
     
-    def process(self, image: np.ndarray, blur_iterations=2, blur_size=7) -> np.ndarray:
+    def process(self, image: np.ndarray, brush_size=7, brush_intensity=5) -> np.ndarray:
+        """
+        명암 그라디언트에 따라 붓터치 방향을 결정하는 유화 효과
+        """
+        # 1. 색상 단순화 (유화 느낌)
         result = image.copy()
-        for _ in range(blur_iterations):
-            result = cv2.medianBlur(result, blur_size)
+        for _ in range(2):
+            result = cv2.bilateralFilter(result, 9, 75, 75)
         
-        result = cv2.bilateralFilter(result, 9, 75, 75)
+        # 2. 그레이스케일로 변환하여 명암 분석
+        gray = self.to_gray(image)
+        
+        # 3. Sobel로 그라디언트 방향 계산
+        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        
+        # 그라디언트 크기와 방향
+        magnitude = np.sqrt(sobelx**2 + sobely**2)
+        angle = np.arctan2(sobely, sobelx)
+        
+        # 4. 붓터치 효과 적용
+        h, w = image.shape[:2]
+        canvas = result.copy()
+        
+        # 일정 간격으로 붓터치 샘플링
+        step = brush_size
+        for y in range(0, h, step):
+            for x in range(0, w, step):
+                if magnitude[y, x] > 10:  # 엣지가 있는 부분만
+                    # 그라디언트 방향에 수직으로 붓터치
+                    direction = angle[y, x] + np.pi/2
+                    
+                    # 붓터치 길이
+                    length = int(brush_size * 1.5)
+                    
+                    # 시작점과 끝점 계산
+                    x1 = int(x - length/2 * np.cos(direction))
+                    y1 = int(y - length/2 * np.sin(direction))
+                    x2 = int(x + length/2 * np.cos(direction))
+                    y2 = int(y + length/2 * np.sin(direction))
+                    
+                    # 범위 체크
+                    if 0 <= x < w and 0 <= y < h:
+                        color = tuple(map(int, result[y, x]))
+                        
+                        # 붓터치 그리기 (선 굵기는 brush_intensity로 조절)
+                        cv2.line(canvas, (x1, y1), (x2, y2), color, 
+                                max(1, brush_intensity // 2), cv2.LINE_AA)
+        
+        # 5. 원본과 블렌딩하여 자연스럽게
+        alpha = 0.7
+        result = cv2.addWeighted(result, alpha, canvas, 1-alpha, 0)
+        
+        # 6. 약간의 질감 추가
+        result = cv2.medianBlur(result, 3)
+        
         return result
 
 

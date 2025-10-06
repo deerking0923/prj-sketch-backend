@@ -1,7 +1,5 @@
 # converter/processors/factory.py
 from .sketch import (
-    PencilSketchProcessor,
-    ColorPencilSketchProcessor,
     InkDrawingProcessor,
     DetailedSketchProcessor
 )
@@ -13,27 +11,21 @@ from .painting import (
     CelShadingProcessor
 )
 from .artistic import (
-    OutlineProcessor,
-    PointillismProcessor,
-    VintageProcessor
+    PointillismProcessor
 )
 
 class ProcessorFactory:
     """변환 타입에 따라 적절한 프로세서를 반환"""
     
     PROCESSORS = {
-        'pencil_sketch': PencilSketchProcessor,
-        'color_pencil': ColorPencilSketchProcessor,
         'ink_drawing': InkDrawingProcessor,
         'detailed_sketch': DetailedSketchProcessor,
-        'cartoon': CartoonProcessor,
         'oil_painting': OilPaintingProcessor,
+        'cartoon': CartoonProcessor,
         'watercolor': WatercolorProcessor,
         'mosaic': MosaicProcessor,
         'cel_shading': CelShadingProcessor,
-        'outline': OutlineProcessor,
         'pointillism': PointillismProcessor,
-        'vintage': VintageProcessor,
     }
     
     @classmethod

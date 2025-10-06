@@ -16,6 +16,8 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     SERVER_IP,
+    'realdeerworld.com',
+    'www.realdeerworld.com'
 ]
 
 INSTALLED_APPS = [
@@ -108,10 +110,15 @@ CORS_ALLOWED_ORIGINS = [
     # 서버 환경 - Next.js 프론트엔드
     f"http://{SERVER_IP}:3000",
     
+    'http://realdeerworld.com',
+    'http://www.realdeerworld.com'
+
     # Spring Boot 백엔드
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     f"http://{SERVER_IP}:8080",
+
+
 ]
 
 CORS_ALLOW_METHODS = [

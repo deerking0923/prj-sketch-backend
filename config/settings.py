@@ -111,7 +111,7 @@ CORS_ALLOWED_ORIGINS = [
     f"http://{SERVER_IP}:3000",
     
     'http://realdeerworld.com',
-    'http://www.realdeerworld.com'
+    'http://www.realdeerworld.com',
 
     # Spring Boot 백엔드
     "http://localhost:8080",

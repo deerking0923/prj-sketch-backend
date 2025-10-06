@@ -81,7 +81,7 @@ class PointillismProcessor(BaseImageProcessor):
             # 해당 위치의 색상 가져오기
             color = tuple(map(int, image[y, x]))
             
-            # 점 그리기 (더 크게)
+            # 점 그리기 (더 크게) 서버 호스트...
             cv2.circle(canvas, (x, y), point_size, color, -1)
         
         return canvas

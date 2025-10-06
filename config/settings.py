@@ -1,10 +1,22 @@
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-_q5&dd*_af5+@spi@)q2!68tme1p3)4%67%xm#4=^hzvtu$yju'
-DEBUG = True
-ALLOWED_HOSTS = []
+# 환경변수에서 읽어오기
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-_q5&dd*_af5+@spi@)q2!68tme1p3)4%67%xm#4=^hzvtu$yju')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+SERVER_IP = os.getenv('SERVER_IP', 'localhost')
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    SERVER_IP,
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -75,22 +87,31 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # --- CORS Configuration ---
 CORS_ALLOWED_ORIGINS = [
-    # Next.js 프론트엔드 (로컬 개발 주소)를 허용
+    # 로컬 개발 환경
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    
+    # 서버 환경 - Next.js 프론트엔드
+    f"http://{SERVER_IP}:3000",
+    
+    # Spring Boot 백엔드
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    f"http://{SERVER_IP}:8080",
 ]
 
 CORS_ALLOW_METHODS = [
@@ -101,3 +122,5 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+
+CORS_ALLOW_CREDENTIALS = True

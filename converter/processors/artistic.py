@@ -39,7 +39,6 @@ class OutlineProcessor(BaseImageProcessor):
         
         return white_bg
 
-
 class PointillismProcessor(BaseImageProcessor):
     """점묘화 효과"""
     
@@ -49,30 +48,30 @@ class PointillismProcessor(BaseImageProcessor):
             {
                 'name': 'point_density',
                 'type': 'int',
-                'default': 50,
-                'min': 20,
-                'max': 200,
-                'step': 10,
-                'description': '점 밀집도 (클수록 많은 점)'
+                'default': 15,        # 50 → 15로 변경 (더 적은 점)
+                'min': 5,
+                'max': 50,
+                'step': 5,
+                'description': '점 밀집도 (작을수록 점이 큼)'
             },
             {
                 'name': 'point_size',
                 'type': 'int',
-                'default': 2,
-                'min': 1,
-                'max': 5,
+                'default': 8,         # 2 → 8로 변경 (더 큰 점)
+                'min': 3,
+                'max': 20,
                 'step': 1,
                 'description': '점 크기'
             }
         ]
     
-    def process(self, image: np.ndarray, point_density=50, point_size=2) -> np.ndarray:
+    def process(self, image: np.ndarray, point_density=15, point_size=8) -> np.ndarray:
         h, w = image.shape[:2]
         
         # 흰 캔버스
         canvas = np.ones((h, w, 3), dtype=np.uint8) * 255
         
-        # 점의 개수 계산
+        # 점의 개수 계산 (더 적게)
         num_points = (h * w) // point_density
         
         for _ in range(num_points):
@@ -82,12 +81,10 @@ class PointillismProcessor(BaseImageProcessor):
             # 해당 위치의 색상 가져오기
             color = tuple(map(int, image[y, x]))
             
-            # 점 그리기
+            # 점 그리기 (더 크게)
             cv2.circle(canvas, (x, y), point_size, color, -1)
         
         return canvas
-
-
 class VintageProcessor(BaseImageProcessor):
     """빈티지/세피아 효과"""
     

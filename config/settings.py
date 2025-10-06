@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 환경변수에서 읽어오기
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-_q5&dd*_af5+@spi@)q2!68tme1p3)4%67%xm#4=^hzvtu$yju')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 SERVER_IP = os.getenv('SERVER_IP', 'localhost')
 
 ALLOWED_HOSTS = [

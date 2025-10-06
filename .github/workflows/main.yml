@@ -13,25 +13,6 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
     
-    - name: Debug Secrets
-      run: |
-        echo "Checking if secrets are loaded..."
-        if [ -z "${{ secrets.SERVER_HOST }}" ]; then
-          echo "ERROR: SERVER_HOST is empty or not set"
-        else
-          echo "SERVER_HOST is set (length: ${#SERVER_HOST})"
-        fi
-        if [ -z "${{ secrets.SERVER_USERNAME }}" ]; then
-          echo "ERROR: SERVER_USERNAME is empty or not set"
-        else
-          echo "SERVER_USERNAME is set"
-        fi
-        if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
-          echo "ERROR: SSH_PRIVATE_KEY is empty or not set"
-        else
-          echo "SSH_PRIVATE_KEY is set (first 50 chars): ${{ secrets.SSH_PRIVATE_KEY }} | cut -c1-50"
-        fi
-    
     - name: Deploy to Oracle Cloud Server
       uses: appleboy/ssh-action@master
       with:
@@ -40,4 +21,74 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          echo "Connected successfully!"
+          set -e
+          
+          echo "=== Starting Deployment ==="
+          
+          # 프로젝트 디렉토리 확인 및 클론
+          if [ ! -d ~/prj-sketch-backend ]; then
+            echo "Repository not found. Cloning..."
+            git clone https://github.com/deerking0923/prj-sketch-backend.git ~/prj-sketch-backend
+          else
+            echo "Repository exists. Pulling latest changes..."
+            cd ~/prj-sketch-backend
+            git reset --hard HEAD
+            git pull origin main
+          fi
+          
+          cd ~/prj-sketch-backend
+          
+          # 가상환경 활성화
+          echo "=== Activating Virtual Environment ==="
+          source venv/bin/activate
+          
+          # 의존성 업데이트
+          echo "=== Installing Dependencies ==="
+          pip install -r requirements.txt
+          
+          # .env 파일 생성
+          echo "=== Creating .env File ==="
+          cat > .env << 'ENVEOF'
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DEBUG=${{ secrets.DEBUG }}
+          SERVER_IP=${{ secrets.SERVER_IP }}
+          ALLOWED_HOSTS=localhost,127.0.0.1,${{ secrets.SERVER_IP }}
+          LANGUAGE_CODE=en-us
+          TIME_ZONE=Asia/Seoul
+          FRONTEND_PORT=3000
+          BACKEND_PORT=8080
+          ENVEOF
+          
+          # 마이그레이션 실행
+          echo "=== Running Migrations ==="
+          python manage.py migrate
+          
+          # 정적 파일 수집
+          echo "=== Collecting Static Files ==="
+          python manage.py collectstatic --noinput
+          
+          # 기존 Django 서버 종료
+          echo "=== Stopping Existing Django Server ==="
+          screen -S django -X quit || echo "No existing server"
+          
+          sleep 3
+          
+          # 새로운 Django 서버 시작
+          echo "=== Starting New Django Server ==="
+          screen -dmS django bash -c 'cd ~/prj-sketch-backend && source venv/bin/activate && python manage.py runserver 0.0.0.0:8000 > django.log 2>&1'
+          
+          sleep 5
+          
+          # 서버 실행 확인
+          if screen -list | grep -q "django"; then
+            echo "✅ Django server is running"
+          else
+            echo "❌ Failed to start Django server"
+            exit 1
+          fi
+          
+          # 최근 로그
+          echo "=== Recent Logs ==="
+          tail -n 20 django.log 2>/dev/null || echo "No logs yet"
+          
+          echo "=== Deployment Completed at $(date) ==="
